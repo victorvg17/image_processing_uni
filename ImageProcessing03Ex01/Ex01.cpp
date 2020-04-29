@@ -54,7 +54,7 @@ CMatrix<float> applyGaussianFilter(CMatrix<float>& sourceImage, Matrix& filter){
   int destImageWidth = width - filterWidth + 1;
   int i,j,h,w;
 
-  cout << "filterHeight, filterwidth: " << height << " " << width << endl;
+  // cout << "filterHeight, filterwidth: " << height << " " << width << endl;
 
   CMatrix<float> destImage(destImageHeight, destImageWidth);
 
@@ -71,6 +71,31 @@ CMatrix<float> applyGaussianFilter(CMatrix<float>& sourceImage, Matrix& filter){
 
   return destImage;
 
+}
+
+/**
+ * @brief recursive filter
+ */
+void recursive_filter(CMatrix<float>& sourceImage, const double smoothing) {
+  const double a = smoothing;
+  int height = sourceImage.ySize();
+  int width = sourceImage.xSize();
+
+  const double coeff = pow(1 - exp(-a), 2) / (1 + 2*a*exp(-a) - exp(-2*a));
+  
+  for (int y = 0; y < sourceImage.ySize(); ++y) {
+    vector <double> fi(width, 0);
+    vector <double> gi(width, 0);
+    for (int x = 2; x < sourceImage.xSize() - 2; ++x) {
+      fi[x] = coeff * (sourceImage(x, y) + exp(-a) * (a - 1) * sourceImage(x - 1, y)) ;
+      fi[x] += 2*exp(-a) * fi[x - 1] - exp(-2*a) * fi[x - 2];
+
+      gi[x] = coeff*(exp(-a)*(a + 1)*sourceImage(x + 1, y) - exp(-2*a) * sourceImage(x + 2, y));
+      gi[x] +=  2*exp(-a) * gi[x + 1] - exp(-2*a) * gi[x + 2];
+
+      sourceImage(x, y) = fi[x] + gi[x];
+    }
+  }
 }
 
 //generates gaussian noise using box-muller method as given in slides
@@ -143,15 +168,24 @@ int main(int argc, char** args)
   CMatrix<float> sourceImage;
   /// Read image from a PGM file
   sourceImage.readFromPGM("chinaToilet.pgm");
-
-  ///destination image
+  /*
+  /destination image
   CMatrix<float> destImage = applyGaussianFilter(sourceImage, filter);
   destImage.writeToPGM("chinaToiletGaussFilter.pgm");
+  
+  cout << "china image: " << sourceImage.xSize() << " " << sourceImage.ySize() << endl;;
   for (int i = 0; i < 5; ++i) { 
     for (int j = 0; j < 5; ++j) 
         cout << filter[i][j] << "\t"; 
     cout << endl; 
   }
+  */
+ const double alpha = 0.35;
+ recursive_filter(sourceImage, alpha);
+
+ sourceImage.writeToPGM("chinaToiletRecursiveFilter.pgm");
+
+
 
 
 
